@@ -1,6 +1,6 @@
-聊聊异步(二)
+# 聊聊异步(二)
 
-#### 回到yield
+## 回到yield
 
 回到之前失败的那个yield, 关键在于这里
 
@@ -12,33 +12,7 @@ yield urllib2.urlopen(url)
 
 说到底, 还是要底层提供异步的接口, yield只是一种调度的手段而已.
 
-之前的Python提供的接口, 是这样的:
-
-```python
-import socket
-
-
-BUF_SIZE = 1024  #设置缓冲区的大小
-server_addr = ('127.0.0.1', 8888)  #IP和端口构成表示地址
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  #返回新的socket对象
-client.connect(server_addr)  #要连接的服务器地址, 注意! 这里是阻塞的, 会一直hold住直到返回
-while True:
-    data = raw_input("Please input some string > ")  
-    client.sendall(data)  #发送数据到服务器
-    data = client.recv(BUF_SIZE)  #从服务器端接收数据, 注意! 这里是阻塞的, 会一直hold住直到返回
-    print data
-client.close()
-```
-
-从Python3.5起, 提供了asyncio, Python终于提供了异步IO操作的底层接口
-
-```python
-
-```
-
-
-
-#### epoll
+## epoll
 
 其实我不是很想花费篇幅介绍epoll, 作为一个如此出名的东西, 网上的介绍早就成吨了. 然而考虑到epoll的实现与异步相关太紧密, 这里还是要做一下介绍.
 
@@ -48,9 +22,11 @@ client.close()
 +   epoll的解决方案不像select或poll一样每次都把current轮流加入fd对应的设备等待队列中，而只在epoll_ctl时把current挂一遍（这一遍必不可少）并为每个fd指定一个回调函数，当设备就绪，唤醒等待队列上的等待者时，就会调用这个回调函数，而这个回调函数会把就绪的fd加入一个就绪链表）。epoll_wait的工作实际上就是在这个就绪链表中查看有没有就绪的fd（利用schedule_timeout()实现睡一会，判断一会的效果，和select实现中的第7步是类似的）。
 +   epoll没有文件描述符数量限制，它所支持的FD上限是最大可以打开文件的数目，这个数字一般远大于2048,举个例子,在1GB内存的机器上大约是10万左右，具体数目可以cat /proc/sys/fs/file-max察看,一般来说这个数目和系统内存关系很大。
 
+epoll只是关于网络IO的异步实现, 和磁盘IO无关, 因为epoll中, 触发回调的信号来自网卡硬件的ready事件.
+
 从epoll的实现中你可以发现, 无论是select, poll还是epoll(这些称为IO多路复用)所谓异步的实现, 本质上都是在同步阻塞轮询.
 
-#### 异步磁盘IO
+## 异步磁盘IO
 
 IO 包括两种, 网络IO和磁盘IO, 对于网络IO即socket, 我们有epoll这个工具实现异步; 对于磁盘IO, Linux提供了AIO, 悲伤的是, AIO有以下问题:
 
@@ -67,6 +43,10 @@ IO 包括两种, 网络IO和磁盘IO, 对于网络IO即socket, 我们有epoll这
 
 Python社区的一个贡献者提供了一个基于多线程的异步文件IO实现, 见[这里](https://github.com/Tinche/aiofiles/)
 
-#### uvloop
+## uvloop
 
 还记得Nodejs的基石--libuv吗? 就是这个神奇的东西给js带来了异步IO的能力, 在Nodejs发布后, 这个使用C++实现的东西被独立出来,可以使用在任何语言上! 有人将libuv转到了Python下, 命名为uvloop. uvloop提供了和asyncio一致的接口并带来了异步磁盘IO的实现, 并且从数据上来看, uvloop表现得非常优秀!
+
+## Reference
+
+[这里](https://pymotw.com/3/asyncio/control.html)有一个关于Python各个模块的教程的指引, 通过阅读asyncio相关的模块, 能获取更多与异步有关的信息
